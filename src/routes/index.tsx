@@ -157,16 +157,17 @@ function Index() {
     <div className="text-zinc-200 font-sans antialiased selection:bg-gold-primary/30 min-h-screen relative">
       {/* Video Background */}
       <div className="fixed inset-0 z-0">
-  <video
-    src={heroVideoAsset}
-    autoPlay
-    muted
-    loop
-    playsInline
-    className="w-full h-full object-cover"
-  />
-  <div className="absolute inset-0 bg-black/60" />
-</div>
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="w-full h-full object-cover"
+        >
+          <source src={heroVideoAsset} type="video/mp4" />
+        </video>
+        <div className="absolute inset-0 bg-black/60" />
+      </div>
 
       {/* Nav */}
       <nav className="fixed top-0 w-full z-50 border-b border-zinc-800/50 bg-black/40 backdrop-blur-md">
