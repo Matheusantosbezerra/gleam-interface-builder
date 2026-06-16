@@ -16,6 +16,10 @@ import {
   ArrowUpRight,
   Menu,
   X,
+  Play,
+  Pause,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 
 import heroVideoAsset from "@/assets/hero-video.mp4";
@@ -153,20 +157,116 @@ function Index() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [sent, setSent] = useState(false);
 
+  // Estados e Refs para a interatividade do vídeo
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [isMuted, setIsMuted] = useState(true);
+  const [mouseOffset, setMouseOffset] = useState({ x: 0, y: 0 });
+
+  // Novas states para o efeito do mouse
+  const [mousePos, setMousePos] = useState({ x: -100, y: -100 });
+  const [isHovering, setIsHovering] = useState(false);
+
+  // Efeito combinado de Parallax do vídeo + Rastreamento do mouse
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      const { innerWidth, innerHeight } = window;
+      
+      // 1. Cálculo do Parallax do vídeo
+      const x = (e.clientX / innerWidth) * 2 - 1;
+      const y = (e.clientY / innerHeight) * 2 - 1;
+      setMouseOffset({ x: x * 12, y: y * 12 });
+
+      // 2. Atualiza a posição real do mouse para o efeito visual
+      setMousePos({ x: e.clientX, y: e.clientY });
+
+      // 3. Detecta se o mouse está sobre links, botões ou elementos clicáveis
+      const target = e.target as HTMLElement;
+      const clickable = !!target.closest("a, button, [role='button'], .cursor-pointer");
+      setIsHovering(clickable);
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, []);
+
+  const togglePlay = () => {
+    if (!videoRef.current) return;
+    if (isPlaying) {
+      videoRef.current.pause();
+    } else {
+      videoRef.current.play();
+    }
+    setIsPlaying(!isPlaying);
+  };
+
+  const toggleMute = () => {
+    if (!videoRef.current) return;
+    videoRef.current.muted = !videoRef.current.muted;
+    setIsMuted(!isMuted);
+  };
+
   return (
-    <div className="text-zinc-200 font-sans antialiased selection:bg-gold-primary/30 min-h-screen relative">
-      {/* Video Background */}
-      <div className="fixed inset-0 z-0">
+    <div className="text-zinc-200 font-sans antialiased selection:bg-gold-primary/30 min-h-screen relative lg:cursor-none">
+      
+      {/* ========================================================================= */}
+      {/* EFEITO VISUAL DO MOUSE (Apenas para Desktop / Telas Médias e Grandes)     */}
+      {/* ========================================================================= */}
+      {/* 1. O Ponto Central Fixo */}
+      <div
+        className="hidden md:block fixed top-0 left-0 size-1.5 bg-gold-primary rounded-full pointer-events-none z-[9999] -translate-x-1/2 -translate-y-1/2 mix-blend-screen"
+        style={{
+          transform: `translate3d(${mousePos.x}px, ${mousePos.y}px, 0)`,
+        }}
+      />
+      {/* 2. O Anel Fluído Trailer */}
+      <div
+        className="hidden md:block fixed top-0 left-0 rounded-full pointer-events-none z-[9998] -translate-x-1/2 -translate-y-1/2 border border-gold-primary/40 will-change-transform bg-gold-primary/5 transition-all"
+        style={{
+          width: isHovering ? "48px" : "28px",
+          height: isHovering ? "48px" : "28px",
+          transform: `translate3d(${mousePos.x}px, ${mousePos.y}px, 0)`,
+          transition: "transform 0.12s cubic-bezier(0.25, 1, 0.5, 1), width 0.2s ease, height 0.2s ease, background-color 0.2s ease",
+          backgroundColor: isHovering ? "rgba(212, 175, 55, 0.15)" : "rgba(212, 175, 55, 0.02)",
+        }}
+      />
+      {/* ========================================================================= */}
+
+      {/* Video Background com efeito interativo de Parallax */}
+      <div className="fixed inset-0 z-0 overflow-hidden">
         <video
+          ref={videoRef}
           autoPlay
           muted
           loop
           playsInline
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover will-change-transform"
+          style={{
+            transform: `translate(${mouseOffset.x}px, ${mouseOffset.y}px) scale(1.06)`,
+            transition: "transform 0.4s cubic-bezier(0.25, 1, 0.5, 1)",
+          }}
         >
           <source src={heroVideoAsset} type="video/mp4" />
         </video>
         <div className="absolute inset-0 bg-black/60" />
+      </div>
+
+      {/* Controles de Interatividade do Vídeo */}
+      <div className="fixed bottom-6 left-6 z-50 flex gap-3">
+        <button
+          onClick={togglePlay}
+          aria-label={isPlaying ? "Pausar vídeo de fundo" : "Reproduzir vídeo de fundo"}
+          className="size-11 rounded-full bg-black/60 border border-zinc-800/80 text-zinc-300 backdrop-blur-md grid place-items-center hover:text-gold-primary hover:border-gold-primary/50 transition-all shadow-lg shadow-black/40"
+        >
+          {isPlaying ? <Pause className="size-4" /> : <Play className="size-4" />}
+        </button>
+        <button
+          onClick={toggleMute}
+          aria-label={isMuted ? "Ativar som do vídeo" : "Mutar vídeo"}
+          className="size-11 rounded-full bg-black/60 border border-zinc-800/80 text-zinc-300 backdrop-blur-md grid place-items-center hover:text-gold-primary hover:border-gold-primary/50 transition-all shadow-lg shadow-black/40"
+        >
+          {isMuted ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
+        </button>
       </div>
 
       {/* Nav */}
@@ -233,7 +333,7 @@ function Index() {
                 Compromisso com a Justiça, <span className="italic text-gold-primary">Excelência</span> em Resultados.
               </h1>
               <p className="text-zinc-300 max-w-[52ch] mx-auto text-pretty leading-relaxed mb-10">
-                Escritório dedicado a oferecer soluções jurídicas eficientes e personalizadas. Atuamos com ética, transparência e compromisso na defesa dos direitos de nossos clientes em diversas áreas do Direito.
+                Escritório dedicado a oferecer soluções jurídicas eficientes e personalizadas. Atuamos com ética, transparência e compromisso na defense dos direitos de nossos clientes em diversas áreas do Direito.
               </p>
               <div className="flex flex-wrap items-center justify-center gap-6">
                 <a
@@ -324,7 +424,7 @@ function Index() {
           </div>
         </section>
 
-        {/* Equipe — Horizontal portrait gallery */}
+        {/* Equipe */}
         <section id="equipe" className="py-24 px-6 relative z-10">
           <div className="max-w-7xl mx-auto">
             <Reveal>
